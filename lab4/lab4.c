@@ -1,4 +1,5 @@
-// used help from chatgpt to learn the differences between void pointers and pointers of a type
+// used help from chatgpt to learn the differences/usage among
+// void pointers, pointers of a type, and intptr_t
 
 #define EXTRA_SIZE 256
 #define BUF_SIZE 256
@@ -33,9 +34,10 @@ void *initialize_block(void *block_ptr, void *next_ptr, int data) {
   block->size = 128;
   block->next = next_ptr;
   block_ptr = block;
-  // start at +1 b/c don't initialize head
+  // don't initialize head, skip it
+  // also subtract the size of the head from how many bytes needs to be initialized
   // first argument of memset is address void *
-  memset((block_ptr + 1), data, 127);
+  memset(block_ptr + sizeof(struct header), data, (128 - sizeof(struct header)));
   return block;
 }
 
@@ -43,10 +45,12 @@ void *initialize_block(void *block_ptr, void *next_ptr, int data) {
 void print_out(char *format, void *data, size_t data_size) {
   char buf[BUF_SIZE];
 
-  // used chatgpt to help debug this provided code
+  // used chatgpt to help explain the provided print code
   ssize_t len;
   if (data_size == sizeof(uint64_t)) {
     len = snprintf(buf, BUF_SIZE, format, *(uint64_t *)data);
+  } else if (data_size == sizeof(char)) {
+    len = snprintf(buf, BUF_SIZE, format, *(char *)data);
   } else {
     len = snprintf(buf, BUF_SIZE, format, *(void **)data);
   }
@@ -66,14 +70,19 @@ int main() {
   print_out("second block: %p\n", &second_block_pointer, sizeof(&second_block_pointer));
   // need type void * so get address with &
   print_out("first block size: %d\n", &first_block_pointer->size, sizeof(uint64_t));
-  print_out("first block next: %p\n", first_block_pointer->next, sizeof(struct header));
+  print_out("first block next: %p\n", &first_block_pointer->next, sizeof(struct header));
   print_out("second block size: %d\n", &second_block_pointer->size, sizeof(uint64_t));
-  print_out("second block next: %p\n", second_block_pointer->next, sizeof(struct header));
-  // starting from i = 1 b/c skipping head
-  for (int i = 1; i < first_block_pointer->size; i++) {
-    print_out("%d\n", &first_block_pointer[i], sizeof(first_block_pointer[i]));
+  print_out("second block next: %p\n", &second_block_pointer->next, sizeof(struct header));
+  // used chatgpt to help understand how struct/type size changes step size
+  // starting from beginning of block + head b/c skipping it
+  // want 1 step = 1 byte, typecast to char
+  char *first = (char *)first_block_pointer + sizeof(struct header);
+  char *second = (char *)second_block_pointer + sizeof(struct header);
+  char buf[BUF_SIZE];
+  for (int i = 0; i < (128 - sizeof(struct header)); i++) {
+    print_out("%d\n", &first[i], sizeof(first[i]));
   }
-  for (int i = 1; i < second_block_pointer->size; i++) {
-    print_out("%d\n", &second_block_pointer[i], sizeof(second_block_pointer[i]));
+  for (int i = 0; i < (128 - sizeof(struct header)); i++) {
+    print_out("%d\n", &second[i], sizeof(second[i]));
   }
 }

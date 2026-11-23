@@ -43,14 +43,20 @@ void *handle_client(void *arg) {
     pthread_mutex_lock(&count_mutex);
 
     // TODO: print the message received from client
+    total_message_count++;
     printf("client id: %d\ntotal # of messages: %d\n, message: %s", client->client_id,
            total_message_count, buffer);
 
     // TODO: increase total_message_count per message
-    total_message_count++;
+    // did it above
 
     // unlock mutex
     pthread_mutex_unlock(&count_mutex);
+
+    // close socket
+    close(client->cfd);
+    printf("client ended: %d", client->client_id);
+    free(client);
   }
   return NULL;
 }
@@ -84,7 +90,7 @@ int main() {
       handle_error("accept()");
     }
     struct client_info *client = malloc(sizeof(struct client_info));
-    if (client = NULL) {
+    if (client == NULL) {
       handle_error("struct malloc()");
     }
     client->cfd = fd;
@@ -95,13 +101,12 @@ int main() {
     pthread_mutex_unlock(&client_id_mutex);
 
     pthread_t client_thread;
-    if (pthread_create(&client_thread, NULL, handle_client, client) == -1) {
+    if (pthread_create(&client_thread, NULL, handle_client, client) != 0) {
       handle_error("create thread");
     }
     // TODO: call handle_client() when launching a new thread, and provide
     // client_info
-    handle_client(sfd);
-    printf("client ID: %d", client_id_counter);
+    printf("client ID: %d, socket fd: %d", client->client_id, client->cfd);
 
     // pthread_detach instead of pthread_join
     pthread_detach(client_thread);
